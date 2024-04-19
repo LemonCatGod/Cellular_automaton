@@ -7,14 +7,15 @@ from sys import exit
 import time
 
 
-start_time = time.thread_time()
+start_time_2 = time.time()
 # Константы цветов RGB
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
 ORANGE = (255, 170, 0)
 RED = (255, 0, 0)
 cell_size = 10
-ROOLS = [[[2,3],[3]], [[2,3,4],[3]],[[2],[2,3,4]]]
+#ROOLS = [[[2,3],[3]], [[2,3,4],[3]], [[2],[2,3,4]]]
+ROOLS = [[[1], [1]], [[1], [1, 2]], [[2, 3], [3, 4]], [[1, 2], [3, 4]]]
 system=[[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]]
 option = 0
 root = None
@@ -106,30 +107,78 @@ cells_next = [[0 for j in range(height)] for i in range(width)]
 set_args()
 
 # Функция определения кол-ва соседей
-def near(pos: list , system=[[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]]):
+def near(pos: list, limits: list, system=[[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]]):
+    '''system = [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1],
+              [-2, -2], [-2, -1], [-2, 0], [-2, 1], [-2, 2], [2, -2], [2, -1], [2, 0], [2, 1], [2, 2],
+              [-1, -2], [-1, 2], [0, -2], [0, 2], [1, -2], [1, 2]]'''
     count = 0
     for i in system:
-        if cells[(pos[0] + i[0]) % width][(pos[1] + i[1]) % height] == 1:
+        if limits[0] <= pos[0] + i[0] < limits[1] and limits[2] <= pos[1] + i[1] < limits[3] and cells[(pos[0] + i[0])][(pos[1] + i[1])] == 1:
             count += 1
     return count
 
 
 def draw_field(w_x, w_x2, h_y, h_y2):
     global root, cells, cells_next, ROOLS
+    opt = 0
     for i in range(w_x, w_x2):
         for j in range(h_y, h_y2):
             p.draw.rect(root, RED if cells[i][j] == 1 else BLACK, [i * cell_size, j * cell_size, cell_size, cell_size])
     for i in range(w_x, w_x2):
         for j in range(h_y, h_y2):
-            if cells[i][j]:
-                if near([i, j]) not in ROOLS[option][0]:
-                    cells_next[i][j] = 0
-                else:
+            if 0 <= i < width // 5 and 0 <= j < height // 5:
+                opt = 0
+                if cells[i][j]:
+                    if near([i, j], [0, width//5, 0, height // 5]) not in ROOLS[opt][0]:
+                        cells_next[i][j] = 0
+                    else:
+                        cells_next[i][j] = 1
+                elif near([i, j], [0, width//5, 0, height // 5]) in ROOLS[opt][1]:
                     cells_next[i][j] = 1
-            elif near([i, j]) in ROOLS[option][1]:
-                cells_next[i][j] = 1
+                else:
+                    cells_next[i][j] = 0
+            elif 0 <= i < width // 5 and height // 5 <= j:
+                opt = 1
+                if cells[i][j]:
+                    if near([i, j], [0, width//5, height // 5, height]) not in ROOLS[opt][0]:
+                        cells_next[i][j] = 0
+                    else:
+                        cells_next[i][j] = 1
+                elif near([i, j], [0, width//5, height // 5, height]) in ROOLS[opt][1]:
+                    cells_next[i][j] = 1
+                else:
+                    cells_next[i][j] = 0
+            elif width // 5 <= i and height // 2 <= j:
+                opt = 2
+                if cells[i][j]:
+                    if near([i, j], [width // 5, width, height // 2, height]) not in ROOLS[opt][0]:
+                        cells_next[i][j] = 0
+                    else:
+                        cells_next[i][j] = 1
+                elif near([i, j], [width // 5, width, height // 2, height]) in ROOLS[opt][1]:
+                    cells_next[i][j] = 1
+                else:
+                    cells_next[i][j] = 0
             else:
-                cells_next[i][j] = 0
+                opt = 3
+                if cells[i][j]:
+                    if near([i, j], [width // 5, width, 0, height // 2]) not in ROOLS[opt][0]:
+                        cells_next[i][j] = 0
+                    else:
+                        cells_next[i][j] = 1
+                elif near([i, j], [width // 5, width, 0, height // 2]) in ROOLS[opt][1]:
+                    cells_next[i][j] = 1
+                else:
+                    cells_next[i][j] = 0
+
+'''def draw_field(w_x, w_x2, h_y, h_y2):
+    global root, cells, cells_next, ROOLS
+    for i in range(w_x, w_x2):
+        for j in range(h_y, h_y2):
+            p.draw.rect(root, RED if cells[i][j] == 1 else BLACK, [i * cell_size, j * cell_size, cell_size, cell_size])
+    for i in range(w_x, w_x2):
+        for j in range(h_y, h_y2):
+            cells_next[i][j] = near([i, j]) % 2'''
 
 
 def run_threads(count, args):
@@ -146,8 +195,18 @@ def run_threads(count, args):
     cells = cells_next
 
 
-FPS = p.time.Clock()
+def get_file(name):
+    global cells
+    f = open(name, "w")
+    for i in cells:
+        for j in i:
+            f.write(str(j))
+    f.close()
+
+
+#FPS = p.time.Clock()
 p.event.set_allowed([p.QUIT, p.KEYDOWN, p.K_s, p.K_r])
+counter = 0
 while 1:
     #FPS.tick(60)
     for i in p.event.get():
@@ -156,17 +215,13 @@ while 1:
         if i.type == p.KEYDOWN:
             if i.key == p.K_s:
                 is_game_started = True
-                start_time = time.thread_time()
+                start_time_2 = time.time()
             if i.key == p.K_r:
-                end_time = time.time()
-                execution_time = end_time - start_time
+                end_time_2 = time.time()
+                execution_time = end_time_2 - start_time_2
                 print(f"Время выполнения программы: {execution_time} секунд")
                 is_game_started = False
                 cells = [[0 for j in range(height)] for i in range(width)]
-    '''for i in range(0, width):
-        for j in range(0, height):
-            #print(cells[i][j],i,j)
-            p.draw.rect(root, RED if cells[i][j] == 1 else BLACK, [i * cell_size, j * cell_size, cell_size, cell_size])'''
     #отрисовка сетки
     #for i in range(0, root.get_height()):
         #p.draw.line(root, WHITE, (0, i * cell_size), (root.get_width(), i * cell_size))
@@ -174,7 +229,21 @@ while 1:
         #p.draw.line(root, WHITE, (j * cell_size, 0), (j * cell_size, root.get_height()))
     # Обновляем экран
     p.display.update()
+    if counter == 20:
+        get_file("20.txt")
+    if counter == 40:
+        get_file("40.txt")
+    if counter == 60:
+        get_file("60.txt")
+    if counter == 80:
+        get_file("80.txt")
+    if counter == 100:
+        get_file("100.txt")
+        end_time_2 = time.time()
+        execution_time_2 = end_time_2 - start_time_2
+        print(f"Время выполнения программы: {execution_time_2} секунд")
     if is_game_started:
+        counter += 1
         run_threads(number_of_process, args)
     else:
         pressed = p.mouse.get_pressed()
